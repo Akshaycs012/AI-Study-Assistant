@@ -57,16 +57,21 @@ document.getElementById("btnExplain").addEventListener("click", async () => {
 
     // 📚 Resources
     document.getElementById("resources-output").innerHTML = `
-      <div class="bg-[#1f1f3a] p-5 rounded-2xl shadow-md">
-        <h2 class="text-2xl font-bold mb-3 text-pink-300">📚 Resources</h2>
-        <div class="flex gap-4">
-          <a href="${data.resources?.docs}" target="_blank"
-             class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-white font-semibold">Official Docs</a>
-          <a href="${data.resources?.youtube_search}" target="_blank"
-             class="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-white font-semibold">YouTube Tutorials</a>
-        </div>
-      </div>
-    `;
+  <div class="bg-[#1f1f3a] p-5 rounded-2xl shadow-md">
+    <h2 class="text-2xl font-bold mb-3 text-pink-300">📚 Resources</h2>
+    <div class="flex gap-4">
+      <a href="${data.resources?.docs}" target="_blank"
+         class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-white font-semibold">Official Docs</a>
+
+      <a href="/youtube_results?code=${encodeURIComponent(document.getElementById('code').value)}"
+         target="_blank"
+         class="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-white font-semibold">
+         YouTube Tutorials
+      </a>
+    </div>
+  </div>
+`;
+
 
     // Optional: Add returned CSS
     if (data.css) {

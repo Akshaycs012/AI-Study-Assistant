@@ -5,6 +5,7 @@ from pygments.formatters import HtmlFormatter
 from pygments.util import ClassNotFound
 from datetime import datetime, timedelta
 from groq import Groq
+import requests
 import re
 import os
 from dotenv import load_dotenv
@@ -14,6 +15,7 @@ load_dotenv()
 app = Flask(__name__)
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
 # In-memory storage
 TIMETABLES = []
@@ -199,6 +201,62 @@ def edit_task():
         return redirect(url_for("index"))
     except Exception as e:
         return f"Failed to edit: {e}", 400
+
+
+
+
+
+@app.route("/get_youtube_videos", methods=["POST"])
+def get_youtube_videos():
+    code = request.json.get("code", "")
+
+    groq_response = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "llama-3.1-8b-instant",
+            "messages": [
+                {"role": "system", "content": "Extract 2-4 keywords or topics from this code."},
+                {"role": "user", "content": code}
+            ]
+        }
+    )
+
+    keywords = groq_response.json()["choices"][0]["message"]["content"]
+    search_query = keywords.replace("\n", " ").strip()
+
+    yt_response = requests.get(
+        "https://www.googleapis.com/youtube/v3/search",
+        params={
+            "part": "snippet",
+            "q": search_query,
+            "key": os.getenv("YOUTUBE_API_KEY"),
+            "maxResults": 6,
+            "type": "video"
+        }
+    )
+    videos = yt_response.json().get("items", [])
+
+    return jsonify({
+        "query": search_query,
+        "videos": [
+            {
+                "title": v["snippet"]["title"],
+                "thumbnail": v["snippet"]["thumbnails"]["medium"]["url"],
+                "videoId": v["id"]["videoId"]
+            } for v in videos
+        ]
+    })
+
+@app.route("/youtube_results")
+def youtube_results():
+    return render_template("youtube_results.html")
+
+
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

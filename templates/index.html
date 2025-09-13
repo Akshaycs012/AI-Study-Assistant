@@ -31,27 +31,39 @@
 
     <div class="main">
       <div class="description">AI-powered study assistant & code explainer.</div>
+
       <div class="row gap-6 mt-6 flex flex-wrap">
-  <!-- Styled Explanation Output -->
-  <div id="explanation-output" 
-     class="bg-gray-900 text-gray-100 shadow-lg rounded-2xl p-6 space-y-6 max-w-3xl flex-1 border border-gray-700">
-  <!-- AI explanation will be injected here -->
-</div>
+        <!-- Styled Explanation Output -->
+        <div id="explanation-output" 
+            class="bg-gray-900 text-gray-100 shadow-lg rounded-2xl p-6 space-y-6 max-w-3xl flex-1 border border-gray-700">
+          <!-- AI explanation will be injected here -->
+        </div>
 
-
-  <!-- Optional contextual side panel -->
-  <div id="contextual-output" 
-     class="bg-gray-800 text-gray-100 shadow-md rounded-xl p-4 max-w-xs flex-1 border border-gray-700">
-  <!-- Key concepts etc. -->
-</div>
-
-</div>
+        <!-- Optional contextual side panel -->
+        <div id="contextual-output" 
+            class="bg-gray-800 text-gray-100 shadow-md rounded-xl p-4 max-w-xs flex-1 border border-gray-700">
+          <!-- Key concepts etc. -->
+        </div>
+      </div>
 
       <div class="resources" id="resources-output"></div>
 
+      <!-- Code input + buttons -->
       <div class="flex items-center space-x-2 mt-4">
-        <textarea id="code" placeholder="Paste your code..." class="flex-1 px-2 py-1 rounded bg-gray-800 text-white resize-none h-10"></textarea>
-        <button id="btnExplain" class="px-4 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-white">Explain Code</button>
+        <textarea id="code" placeholder="Paste your code..." 
+                  class="flex-1 px-2 py-1 rounded bg-gray-800 text-white resize-none h-10"></textarea>
+
+        <!-- Explain button -->
+        <button id="btnExplain" 
+                class="px-4 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-white">
+          Explain Code
+        </button>
+
+        <!-- YouTube Tutorials button -->
+        <button id="youtubeBtn"
+                class="px-4 py-1 bg-rose-600 hover:bg-rose-700 rounded text-white">
+          YouTube Tutorials
+        </button>
       </div>
 
       <div>
@@ -78,5 +90,18 @@
       </div>
     </div>
   </div>
+
+  <!-- YouTube button logic -->
+  <script>
+    document.getElementById("youtubeBtn").addEventListener("click", function() {
+        const code = document.getElementById("code").value;
+        if (!code.trim()) {
+            alert("Please paste some code first!");
+            return;
+        }
+        const url = "/youtube_results?code=" + encodeURIComponent(code);
+        window.open(url, "_blank");
+    });
+  </script>
 </body>
 </html>
