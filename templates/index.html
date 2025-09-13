@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Code Explainer & Study Assistant</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div class="navbar-horizontal">
+    <div class="profile">Profile</div>
+    <div class="nav-buttons">
+      <button>Dashboard</button>
+      <button>Notes</button>
+      <button>Resources</button>
+    </div>
+    <div class="settings">⚙️</div>
+  </div>
+
+  <div class="layout">
+    <div class="navbar-vertical">
+      <form action="/generate_timetable" method="POST">
+        <label>Start Time:</label>
+        <input type="time" name="start_time" value="09:00">
+        <input type="text" name="task_name" placeholder="Task name">
+        <input type="number" name="duration_minutes" placeholder="Duration (min)">
+        <button type="submit">Generate Task</button>
+      </form>
+    </div>
+
+    <div class="main">
+      <div class="description">AI-powered study assistant & code explainer.</div>
+      <div class="row gap-6 mt-6 flex flex-wrap">
+  <!-- Styled Explanation Output -->
+  <div id="explanation-output" 
+     class="bg-gray-900 text-gray-100 shadow-lg rounded-2xl p-6 space-y-6 max-w-3xl flex-1 border border-gray-700">
+  <!-- AI explanation will be injected here -->
+</div>
+
+
+  <!-- Optional contextual side panel -->
+  <div id="contextual-output" 
+     class="bg-gray-800 text-gray-100 shadow-md rounded-xl p-4 max-w-xs flex-1 border border-gray-700">
+  <!-- Key concepts etc. -->
+</div>
+
+</div>
+
+      <div class="resources" id="resources-output"></div>
+
+      <div class="flex items-center space-x-2 mt-4">
+        <textarea id="code" placeholder="Paste your code..." class="flex-1 px-2 py-1 rounded bg-gray-800 text-white resize-none h-10"></textarea>
+        <button id="btnExplain" class="px-4 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-white">Explain Code</button>
+      </div>
+
+      <div>
+        {% if timetables %}
+          {% for timetable in timetables %}
+            <div class="timetable-block">
+              <h3>Timetable {{ loop.index }}</h3>
+              <ul>
+                {% for item in timetable %}
+                  <li data-start="{{ item.start }}" data-timetable-index="{{ loop.index0 }}" data-task-index="{{ loop.index0 }}">
+                    <div class="task-info"><strong>{{ item.task }}</strong> — {{ item.start }} to {{ item.end }}</div>
+                    <div class="task-actions">
+                      <button class="edit-btn">Edit</button>
+                      <button class="remove-btn">Remove</button>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p>No timetables yet. Add one using the form.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
