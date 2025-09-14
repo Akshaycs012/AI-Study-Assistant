@@ -9,6 +9,7 @@ import requests
 import re
 import os
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -109,31 +110,115 @@ def extract_keywords(code: str):
 # --------------------------
 @app.route("/")
 def index():
-    return render_template("index.html", timetables=TIMETABLES)
+    safe_tables = [t for t in TIMETABLES if isinstance(t, dict) and "items" in t]
+    return render_template("index.html", timetables=safe_tables)
+
+
 
 @app.route("/generate_timetable", methods=["POST"])
 def generate_timetable():
-    start_time = request.form.get("start_time")
     task_name = request.form.get("task_name")
+    start_time = request.form.get("start_time")
     duration = request.form.get("duration_minutes")
 
     if not task_name or not duration:
-        return "Error: Task name and duration are required", 400
+        return "Missing fields", 400
 
     start_dt = datetime.strptime(start_time, "%H:%M")
     end_dt = start_dt + timedelta(minutes=int(duration))
 
-    timetable = [{
-        "task": task_name,
-        "start": start_dt.strftime("%H:%M"),
-        "end": end_dt.strftime("%H:%M")
-    }]
+    # ✅ correct format
+    new_timetable = {
+        "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "items": [
+            {
+                "task": task_name,
+                "start": start_dt.strftime("%H:%M"),
+                "end": end_dt.strftime("%H:%M"),
+                "minutes": int(duration)
+            }
+        ]
+    }
 
-    if not TIMETABLES:
-        TIMETABLES.append([])
-    TIMETABLES[0].append(timetable)
-
+    TIMETABLES.append(new_timetable)
     return redirect(url_for("index"))
+
+
+
+@app.route("/generate_study_timetable", methods=["POST"])
+def generate_study_timetable():
+    import json
+    data = request.get_json(silent=True) or {}
+    code = data.get("code", "")
+    concepts = data.get("concepts", "")
+
+    if not code.strip():
+        return jsonify(success=False, error="No code provided"), 400
+
+    prompt = f"""
+You are a helpful study planner.
+Analyze this code and its key concepts, and produce ONLY valid JSON (no explanation text).
+
+Each JSON item must have:
+  - "task": short task name
+  - "minutes": integer (duration)
+
+Example output:
+[
+  {{"task": "Understand loops", "minutes": 30}},
+  {{"task": "Practice functions", "minutes": 40}}
+]
+
+Key concepts: {concepts}
+
+Code:
+
+Only return valid JSON array, no extra notes or explanations.
+"""
+
+    try:
+        resp = client.chat.completions.create(
+            model="gemma2-9b-it",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
+
+        raw = (resp.choices[0].message.content or "").strip()
+
+        # Extract first valid JSON array
+        start = raw.find('[')
+        end = raw.rfind(']')
+        if start == -1 or end == -1:
+            raise ValueError(f"No JSON array found. Got: {raw[:100]}...")
+        json_text = raw[start:end+1]
+
+        # Validate JSON
+        items = json.loads(json_text)
+        if not isinstance(items, list):
+            raise ValueError("Expected a JSON list of tasks")
+
+        TIMETABLES.append({
+            "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "items": items
+        })
+        return jsonify(success=True)
+
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+
+
+@app.route("/timetables")
+def view_timetables():
+    # Ensure TIMETABLES is always a list of dicts with "items" key
+    safe_tables = []
+    for t in TIMETABLES:
+        if isinstance(t, dict) and "items" in t:
+            safe_tables.append(t)
+    return render_template("timetables.html", timetables=safe_tables)
+
+
+
 
 @app.route("/explain", methods=["POST"])
 def explain():
@@ -171,36 +256,6 @@ def explain():
         }
     })
 
-@app.route("/delete_task", methods=["POST"])
-def delete_task():
-    data = request.get_json(silent=True) or {}
-    tt_idx = int(data.get("timetable_index", -1))
-    task_idx = int(data.get("task_index", -1))
-
-    if 0 <= tt_idx < len(TIMETABLES) and 0 <= task_idx < len(TIMETABLES[tt_idx]):
-        TIMETABLES[tt_idx].pop(task_idx)
-        return jsonify(success=True)
-    return jsonify(success=False, error="Invalid indices"), 400
-
-@app.route("/edit_task", methods=["POST"])
-def edit_task():
-    timetable_index = int(request.form.get("timetable_index"))
-    task_index = int(request.form.get("task_index"))
-    task_name = request.form.get("task_name")
-    start_time = request.form.get("start_time")
-    duration = request.form.get("duration_minutes")
-
-    try:
-        start_dt = datetime.strptime(start_time, "%H:%M")
-        end_dt = start_dt + timedelta(minutes=int(duration))
-        TIMETABLES[timetable_index][task_index] = {
-            "task": task_name,
-            "start": start_dt.strftime("%H:%M"),
-            "end": end_dt.strftime("%H:%M")
-        }
-        return redirect(url_for("index"))
-    except Exception as e:
-        return f"Failed to edit: {e}", 400
 
 
 
@@ -250,8 +305,35 @@ def youtube_results():
     return render_template("youtube_results.html", concepts=concepts)
 
 
+@app.route("/api/get_current_timetable")
+def get_current_timetable():
+    if not TIMETABLES or "items" not in TIMETABLES[-1]:
+        return jsonify({"items": []})
+    return jsonify({"items": TIMETABLES[-1]["items"]})
+
+@app.route("/delete_timetable", methods=["POST"])
+def delete_timetable():
+    data = request.get_json(silent=True) or {}
+    idx = int(data.get("timetable_index", -1))
+
+    if 0 <= idx < len(TIMETABLES):
+        TIMETABLES.pop(idx)
+        return jsonify({"success": True})
+    return jsonify({"success": False}), 400
 
 
+@app.route("/delete_task", methods=["POST"])
+def delete_task():
+    data = request.get_json(silent=True) or {}
+    table_index = int(data.get("timetable_index", -1))
+    task_index = int(data.get("task_index", -1))
+
+    if 0 <= table_index < len(TIMETABLES):
+        timetable = TIMETABLES[table_index]
+        if "items" in timetable and 0 <= task_index < len(timetable["items"]):
+            timetable["items"].pop(task_index)
+            return jsonify({"success": True})
+    return jsonify({"success": False}), 400
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

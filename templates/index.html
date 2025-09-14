@@ -7,111 +7,141 @@
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="navbar-horizontal">
-    <div class="profile">Profile</div>
-    <div class="nav-buttons">
-      <button>Dashboard</button>
-      <button>Notes</button>
-      <button>Resources</button>
+
+<body class="bg-gray-900 text-white">
+
+  <!-- 🌟 Top Navbar -->
+  <div class="flex justify-between items-center px-6 py-4 bg-gray-800">
+    <div class="font-semibold">👤 Profile</div>
+    <div class="space-x-4">
+      <button onclick="location.href='/timetables'" class="hover:underline">Timetables</button>
+      <button class="hover:underline">Notes</button>
+      <button class="hover:underline">Resources</button>
     </div>
-    <div class="settings">⚙️</div>
+    <div class="text-xl">⚙️</div>
   </div>
 
-  <div class="layout">
-    <div class="navbar-vertical">
-      <form action="/generate_timetable" method="POST" class="flex flex-col gap-3 p-2">
-  <label class="text-sm text-gray-300">Start Time:</label>
-  <input type="time" name="start_time" value="09:00"
-         class="px-3 py-2 rounded bg-gray-800 text-white">
+  <div class="flex">
 
-  <label class="text-sm text-gray-300">Task Name:</label>
-  <input type="text" name="task_name" placeholder="Enter task name"
-         class="px-3 py-2 rounded bg-gray-800 text-white">
+    <!-- 🎯 Left Sidebar -->
+    <aside class="w-72 p-4 space-y-4 border-r border-gray-800">
+      <div id="focus-session" class="bg-gray-800 p-4 rounded-xl shadow-md">
+        <h2 class="text-lg font-semibold mb-2 text-emerald-300">🎯 Focus Session</h2>
 
-  <label class="text-sm text-gray-300">Duration (minutes):</label>
-  <input type="number" name="duration_minutes" placeholder="e.g. 60"
-         class="px-3 py-2 rounded bg-gray-800 text-white">
-
-  <button type="submit"
-          class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white">
-    Generate Task
-  </button>
-</form>
-
-    </div>
-
-    <div class="main">
-      <div class="description">AI-powered study assistant & code explainer.</div>
-
-      <div class="row gap-6 mt-6 flex flex-wrap">
-        <!-- Styled Explanation Output -->
-        <div id="explanation-output" 
-            class="bg-gray-900 text-gray-100 shadow-lg rounded-2xl p-6 space-y-6 max-w-3xl flex-1 border border-gray-700">
-          <!-- AI explanation will be injected here -->
+        <!-- Idle -->
+        <div id="focus-idle" class="text-gray-400">
+          No session active.
+          <button id="startFocusBtn" class="text-emerald-400 underline ml-1">Start</button>
         </div>
 
-        <!-- Optional contextual side panel -->
-        <div id="contextual-output" 
+        <!-- Active -->
+        <div id="focus-active" class="hidden space-y-3">
+          <div id="current-task" class="text-lg font-semibold"></div>
+          <div id="timer" class="text-3xl font-mono text-emerald-400"></div>
+          <div class="flex gap-2">
+            <button id="pauseBtn" class="bg-yellow-500 px-3 py-1 rounded text-black">Pause</button>
+            <button id="stopBtn" class="bg-red-600 px-3 py-1 rounded">Stop</button>
+            <button id="restartBtn" class="bg-blue-600 px-3 py-1 rounded">Restart</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 📌 Main Content -->
+    <main class="flex-1 p-6">
+
+      <!-- Description -->
+      <div class="mb-6 text-gray-300">
+        💡 AI-powered study assistant & code explainer.
+      </div>
+
+      <!-- Output Panels -->
+      <div class="flex flex-wrap gap-6">
+        <div id="explanation-output"
+            class="bg-gray-900 text-gray-100 shadow-lg rounded-2xl p-6 space-y-6 max-w-3xl flex-1 border border-gray-700">
+        </div>
+
+        <div id="contextual-output"
             class="bg-gray-800 text-gray-100 shadow-md rounded-xl p-4 max-w-xs flex-1 border border-gray-700">
-          <!-- Key concepts etc. -->
         </div>
       </div>
 
-      <div class="resources" id="resources-output"></div>
+      <!-- ✅ Resources Box BELOW the outputs -->
+      <div id="resources-output" class="mt-6"></div>
 
-     <!-- Code input + buttons -->
-<div class="mt-4 w-full">
+      <!-- 💻 Code input -->
+      <div class="mt-10">
+        <label for="code" class="text-gray-300 text-sm block mb-2">💻 Paste your code below:</label>
+        <textarea id="code" placeholder="Paste your code here..." 
+                  class="w-full min-h-[250px] px-3 py-2 rounded bg-gray-800 text-white resize-y"></textarea>
 
-  <!-- Code input area -->
-  <div class="flex flex-col space-y-2 w-full">
-    <label for="code" class="text-gray-300 text-sm">💻 Paste your code below:</label>
-    <textarea id="code" placeholder="Paste your code here..." 
-              class="flex-1 min-h-[250px] px-3 py-2 rounded bg-gray-800 text-white resize-y"></textarea>
-  </div>
+        <div class="flex items-center space-x-2 mt-3">
+          <button id="btnExplain" 
+                  class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded text-white">
+            Explain Code
+          </button>
+          <label class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded text-white cursor-pointer">
+            Add File
+            <input type="file" id="fileInput" class="hidden">
+          </label>
+        </div>
+      </div>
 
-  <!-- Buttons row -->
-  <div class="flex items-center space-x-2 mt-3">
-    <!-- Explain button -->
-    <button id="btnExplain" 
-            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded text-white">
-      Explain Code
-    </button>
+      <!-- 📅 Timetables Section -->
+      <section class="mt-10">
+        <h2 class="text-2xl font-semibold mb-4">📅 Your Timetables</h2>
 
-    <!-- Add File button -->
-    <label class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded text-white cursor-pointer">
-      Add File
-      <input type="file" id="fileInput" class="hidden">
-    </label>
-  </div>
-</div>
-
-
-      <div>
         {% if timetables %}
           {% for timetable in timetables %}
-            <div class="timetable-block">
-              <h3>Timetable {{ loop.index }}</h3>
-              <ul>
-                {% for item in timetable %}
-                  <li data-start="{{ item.start }}" data-timetable-index="{{ loop.index0 }}" data-task-index="{{ loop.index0 }}">
-                    <div class="task-info"><strong>{{ item.task }}</strong> — {{ item.start }} to {{ item.end }}</div>
-                    <div class="task-actions">
-                      <button class="edit-btn">Edit</button>
-                      <button class="remove-btn">Remove</button>
-                    </div>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
+            {% if 'items' in timetable %}
+              {% set timetable_index = loop.index0 %}
+              <div class="bg-gray-800 rounded-xl p-4 mb-4 shadow">
+
+                <!-- Timetable Header -->
+                <div class="flex justify-between items-center mb-2">
+                  <h3 class="text-xl font-semibold">
+                    Timetable {{ loop.index }}
+                    {% if timetable.created %}
+                      <span class="text-sm text-gray-400">— {{ timetable.created }}</span>
+                    {% endif %}
+                  </h3>
+                  <button onclick="deleteTimetable('{{ timetable_index }}')"
+                          class="text-red-400 hover:underline text-sm">
+                    Delete Timetable
+                  </button>
+                </div>
+
+                <!-- Timetable Items -->
+                <ul class="space-y-2">
+                  {% for item in timetable["items"] %}
+                    <li class="bg-gray-700 rounded p-2 flex justify-between items-center"
+                        data-timetable-index="{{ timetable_index }}"
+                        data-task-index="{{ loop.index0 }}">
+                      <div>
+                        <span class="font-medium">{{ item.task }}</span>
+                        <span class="text-sm text-gray-300 ml-2">
+                          {% if item.start and item.end %}
+                            {{ item.start }} - {{ item.end }}
+                          {% else %}
+                            {{ item.minutes | default(0) }} min
+                          {% endif %}
+                        </span>
+                      </div>
+                      <button onclick="deleteTask('{{ timetable_index }}', '{{ loop.index0 }}')"
+                              class="text-red-400 hover:underline text-xs">✖</button>
+                    </li>
+                  {% endfor %}
+                </ul>
+
+              </div>
+            {% endif %}
           {% endfor %}
         {% else %}
-          <p>No timetables yet. Add one using the form.</p>
+          <p class="text-gray-400">No timetables yet. Create one to get started.</p>
         {% endif %}
-      </div>
-    </div>
+      </section>
+
+    </main>
   </div>
-
-
 </body>
 </html>
