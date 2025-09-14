@@ -458,3 +458,57 @@ function showDeepDive(content) {
   contentBox.innerHTML = content;
   deepDive.classList.remove('hidden');
 }
+
+async function fetchResources() {
+  const topic = topicInput.value.trim();
+  if (!topic) {
+    alert("Please enter a topic to fetch resources.");
+    return;
+  }
+
+  // Show loading
+  const outputDiv = document.getElementById('resourcesOutput');
+  outputDiv.innerHTML = "Loading resources...";
+
+  try {
+    const res = await fetch('/get_youtube_videos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ concepts: topic })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      outputDiv.innerHTML = `<p class="text-red-500">Error: ${data.error}</p>`;
+      return;
+    }
+
+    if (data.videos && data.videos.length > 0) {
+      const ul = document.createElement('ul');
+      ul.classList.add('space-y-4');
+
+      data.videos.forEach(v => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div class="p-4 border border-red-400 dark:border-red-600 rounded-lg shadow-sm bg-red-50 dark:bg-gray-700">
+            <div class="flex-1">
+              <span class="text-sm font-semibold text-red-600 dark:text-red-400">YouTube Video:</span>
+              <a href="https://www.youtube.com/watch?v=${v.videoId}" target="_blank" class="block mt-1 font-medium text-lg hover:underline">${v.title}</a>
+              <img src="${v.thumbnail}" class="mt-2 rounded-lg w-64">
+            </div>
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+      outputDiv.innerHTML = '';
+      outputDiv.appendChild(ul);
+    } else {
+      outputDiv.innerHTML = '<p class="text-center text-gray-500">No resources found.</p>';
+    }
+  } catch (err) {
+    outputDiv.innerHTML = `<p class="text-red-500">Network error: ${err.message}</p>`;
+  }
+}
+
+fetchResourcesBtn.addEventListener('click', fetchResources);

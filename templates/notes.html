@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes - AI Study Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .notes-container { min-height: 400px; }
+    pre {
+      background-color: #1e293b;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #475569;
+      overflow-x: auto;
+      font-family: monospace;
+      color: #e2e8f0;
+    }
+    p, ul, ol, h1, h2, h3 { margin-bottom: 1rem; }
+    li { margin-bottom: 0.5rem; }
+  </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <header class="bg-indigo-600 dark:bg-indigo-800 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Notes</h1>
+      <nav>
+        <a href="/" class="text-white hover:underline mx-2">Home</a>
+        <a href="/dashboard" class="text-white hover:underline mx-2">Dashboard</a>
+        <a href="/resources" class="text-white hover:underline mx-2">Resources</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container mx-auto mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+    <h2 class="text-3xl font-bold text-center mb-6">Your Personal Notes</h2>
+
+    <!-- Topic input -->
+    <div class="mb-6">
+      <label for="topicName" class="block text-sm font-medium mb-2">Topic Name:</label>
+      <input type="text" id="topicName" placeholder="e.g., Python Functions, CSS Flexbox"
+        class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+    </div>
+
+    <!-- Notes output -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium mb-2">Notes:</label>
+      <div id="notesContent" class="notes-container w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 dark:text-gray-100"></div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex flex-wrap gap-4">
+      <button id="generateBtn" class="flex-1 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg shadow-md">
+        Generate Notes
+      </button>
+      <button id="saveNotesBtn" class="flex-1 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg shadow-md">
+        Save Notes
+      </button>
+      <button id="clearNotesBtn" class="flex-1 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg shadow-md">
+        Clear Notes
+      </button>
+    </div>
+  </main>
+
+  <footer class="bg-gray-200 dark:bg-gray-900 text-gray-600 dark:text-gray-400 p-4 mt-8 text-center shadow-inner">
+    <p>&copy; 2025 AI Study Assistant. All rights reserved.</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const topicInput = document.getElementById('topicName');
+      const notesContent = document.getElementById('notesContent');
+      const generateBtn = document.getElementById('generateBtn');
+      const saveNotesBtn = document.getElementById('saveNotesBtn');
+      const clearNotesBtn = document.getElementById('clearNotesBtn');
+
+      function saveNotes() {
+        const topic = topicInput.value.trim();
+        const notes = notesContent.innerHTML;
+        if (topic && notes) {
+          localStorage.setItem('notes_' + topic.toLowerCase(), notes);
+          alert(`Notes for "${topic}" saved successfully!`);
+        } else {
+          alert('Please generate or enter notes before saving.');
+        }
+      }
+
+      function loadNotes() {
+        const topic = topicInput.value.trim();
+        if (topic) {
+          const savedNotes = localStorage.getItem('notes_' + topic.toLowerCase());
+          notesContent.innerHTML = savedNotes || 'No notes found for this topic.';
+        }
+      }
+
+      function clearNotes() {
+        notesContent.innerHTML = '';
+        topicInput.value = '';
+      }
+
+      async function generateNotes() {
+        const topic = topicInput.value.trim();
+        if (!topic) return alert("Please enter a topic.");
+
+        notesContent.innerHTML = "Generating notes... please wait.";
+        generateBtn.disabled = true;
+        generateBtn.textContent = "Generating...";
+
+        try {
+          const res = await fetch('/generate-notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic })
+          });
+
+          const data = await res.json();
+          if (data.error) {
+            notesContent.innerHTML = `<p class="text-red-500">Error: ${data.error}</p>`;
+          } else {
+            notesContent.innerHTML = data.notes;
+          }
+        } catch (err) {
+          notesContent.innerHTML = `<p class="text-red-500">Network error: ${err.message}</p>`;
+        } finally {
+          generateBtn.disabled = false;
+          generateBtn.textContent = "Generate Notes";
+        }
+      }
+
+      generateBtn.addEventListener('click', generateNotes);
+      saveNotesBtn.addEventListener('click', saveNotes);
+      clearNotesBtn.addEventListener('click', clearNotes);
+      topicInput.addEventListener('change', loadNotes);
+    });
+  </script>
+</body>
+</html>

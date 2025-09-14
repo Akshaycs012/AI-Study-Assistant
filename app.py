@@ -8,6 +8,7 @@ from groq import Groq
 import requests
 import re
 import os
+import markdown
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
@@ -407,6 +408,50 @@ def delete_task():
             timetable["items"].pop(task_index)
             return jsonify({"success": True})
     return jsonify({"success": False}), 400
+
+
+
+@app.route("/notes")
+def notes_page():
+    return render_template("notes.html")
+
+
+
+@app.route('/generate-notes', methods=['POST'])
+def generate_notes():
+    data = request.get_json()
+    topic = data.get("topic")
+
+    if not topic:
+        return jsonify({"error": "Topic is required"}), 400
+
+    try:
+        # Prepare the prompt
+        prompt = (
+            f"Provide a comprehensive explanation of '{topic}' in Markdown format. "
+            f"Use headings, bullet points, numbered lists, and code blocks for relevant examples. "
+            f"The response should be at least 300 words long."
+        )
+
+        # Call Grok API
+        response = client.chat.completions.create(
+            model="gemma2-9b-it",
+            messages=[
+                {"role": "system", "content": "You are a knowledgeable tutor who explains topics clearly."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        # Extract content from response
+        content = response.choices[0].message.content
+
+        # Convert Markdown to HTML
+        html_notes = markdown.markdown(content, extensions=['fenced_code'])
+
+        return jsonify({"notes": html_notes})
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {e}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
