@@ -18,6 +18,32 @@ document.getElementById("btnExplain").addEventListener("click", async () => {
       return;
     }
 
+
+
+        // 🎯 Now fetch YouTube videos based on key concepts
+const keyConcepts = (data.keywords || []).join(" ");
+
+fetch("/get_youtube_videos", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ concepts: keyConcepts })
+})
+  .then(res => res.json())
+  .then(ytData => {
+    const grid = document.getElementById("video-grid");
+    if (!grid) return; // grid exists only on youtube_results.html
+    grid.innerHTML = ytData.videos.map(v => `
+      <div class="card">
+        <a href="https://www.youtube.com/watch?v=${v.videoId}" target="_blank">
+          <img src="${v.thumbnail}" alt="${v.title}">
+          ${v.title}
+        </a>
+      </div>
+    `).join("");
+  })
+  .catch(err => console.error(err));
+
+
     // 💬 Explanation Section
     document.getElementById("explanation-output").innerHTML = `
       <div class="bg-[#1f1f3a] p-5 rounded-2xl shadow-md">
@@ -45,6 +71,8 @@ document.getElementById("btnExplain").addEventListener("click", async () => {
       </div>
     `;
 
+
+
     // 💻 Highlighted Code
     document.getElementById("explanation-output").insertAdjacentHTML("beforeend", `
       <div class="mt-6">
@@ -63,7 +91,8 @@ document.getElementById("btnExplain").addEventListener("click", async () => {
       <a href="${data.resources?.docs}" target="_blank"
          class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-white font-semibold">Official Docs</a>
 
-      <a href="/youtube_results?code=${encodeURIComponent(document.getElementById('code').value)}"
+      <a href="/youtube_results?concepts=${encodeURIComponent(keyConcepts)}"
+
          target="_blank"
          class="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-white font-semibold">
          YouTube Tutorials
@@ -205,3 +234,18 @@ document.addEventListener("click", async (e) => {
   }
 });
 
+
+// ===========================
+// Add File -> Load content into #code
+// ===========================
+document.getElementById("fileInput").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    document.getElementById("code").value = text;
+  } catch (err) {
+    alert("Error reading file: " + err.message);
+  }
+});

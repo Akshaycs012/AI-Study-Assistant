@@ -20,13 +20,25 @@
 
   <div class="layout">
     <div class="navbar-vertical">
-      <form action="/generate_timetable" method="POST">
-        <label>Start Time:</label>
-        <input type="time" name="start_time" value="09:00">
-        <input type="text" name="task_name" placeholder="Task name">
-        <input type="number" name="duration_minutes" placeholder="Duration (min)">
-        <button type="submit">Generate Task</button>
-      </form>
+      <form action="/generate_timetable" method="POST" class="flex flex-col gap-3 p-2">
+  <label class="text-sm text-gray-300">Start Time:</label>
+  <input type="time" name="start_time" value="09:00"
+         class="px-3 py-2 rounded bg-gray-800 text-white">
+
+  <label class="text-sm text-gray-300">Task Name:</label>
+  <input type="text" name="task_name" placeholder="Enter task name"
+         class="px-3 py-2 rounded bg-gray-800 text-white">
+
+  <label class="text-sm text-gray-300">Duration (minutes):</label>
+  <input type="number" name="duration_minutes" placeholder="e.g. 60"
+         class="px-3 py-2 rounded bg-gray-800 text-white">
+
+  <button type="submit"
+          class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white">
+    Generate Task
+  </button>
+</form>
+
     </div>
 
     <div class="main">
@@ -48,23 +60,32 @@
 
       <div class="resources" id="resources-output"></div>
 
-      <!-- Code input + buttons -->
-      <div class="flex items-center space-x-2 mt-4">
-        <textarea id="code" placeholder="Paste your code..." 
-                  class="flex-1 px-2 py-1 rounded bg-gray-800 text-white resize-none h-10"></textarea>
+     <!-- Code input + buttons -->
+<div class="mt-4 w-full">
 
-        <!-- Explain button -->
-        <button id="btnExplain" 
-                class="px-4 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-white">
-          Explain Code
-        </button>
+  <!-- Code input area -->
+  <div class="flex flex-col space-y-2 w-full">
+    <label for="code" class="text-gray-300 text-sm">💻 Paste your code below:</label>
+    <textarea id="code" placeholder="Paste your code here..." 
+              class="flex-1 min-h-[250px] px-3 py-2 rounded bg-gray-800 text-white resize-y"></textarea>
+  </div>
 
-        <!-- YouTube Tutorials button -->
-        <button id="youtubeBtn"
-                class="px-4 py-1 bg-rose-600 hover:bg-rose-700 rounded text-white">
-          YouTube Tutorials
-        </button>
-      </div>
+  <!-- Buttons row -->
+  <div class="flex items-center space-x-2 mt-3">
+    <!-- Explain button -->
+    <button id="btnExplain" 
+            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded text-white">
+      Explain Code
+    </button>
+
+    <!-- Add File button -->
+    <label class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded text-white cursor-pointer">
+      Add File
+      <input type="file" id="fileInput" class="hidden">
+    </label>
+  </div>
+</div>
+
 
       <div>
         {% if timetables %}
@@ -91,17 +112,6 @@
     </div>
   </div>
 
-  <!-- YouTube button logic -->
-  <script>
-    document.getElementById("youtubeBtn").addEventListener("click", function() {
-        const code = document.getElementById("code").value;
-        if (!code.trim()) {
-            alert("Please paste some code first!");
-            return;
-        }
-        const url = "/youtube_results?code=" + encodeURIComponent(code);
-        window.open(url, "_blank");
-    });
-  </script>
+
 </body>
 </html>

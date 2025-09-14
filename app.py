@@ -208,25 +208,15 @@ def edit_task():
 
 @app.route("/get_youtube_videos", methods=["POST"])
 def get_youtube_videos():
-    code = request.json.get("code", "")
+    # Now we get 'concepts' instead of 'code'
+    concepts = request.json.get("concepts", "")
 
-    groq_response = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "llama-3.1-8b-instant",
-            "messages": [
-                {"role": "system", "content": "Extract 2-4 keywords or topics from this code."},
-                {"role": "user", "content": code}
-            ]
-        }
-    )
+    # If nothing is provided, return error
+    if not concepts.strip():
+        return jsonify({"error": "No concepts provided"}), 400
 
-    keywords = groq_response.json()["choices"][0]["message"]["content"]
-    search_query = keywords.replace("\n", " ").strip()
+    # Clean search query
+    search_query = concepts.replace("\n", " ").strip()
 
     yt_response = requests.get(
         "https://www.googleapis.com/youtube/v3/search",
@@ -238,6 +228,7 @@ def get_youtube_videos():
             "type": "video"
         }
     )
+
     videos = yt_response.json().get("items", [])
 
     return jsonify({
@@ -251,9 +242,13 @@ def get_youtube_videos():
         ]
     })
 
+
 @app.route("/youtube_results")
 def youtube_results():
-    return render_template("youtube_results.html")
+    # just pass concepts from query to template if you want
+    concepts = request.args.get("concepts", "")
+    return render_template("youtube_results.html", concepts=concepts)
+
 
 
 

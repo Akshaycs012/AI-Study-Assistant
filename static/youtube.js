@@ -1,17 +1,18 @@
 window.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(window.location.search);
-  const code = params.get("code");
+  const concepts = params.get("concepts");
 
-  if (!code) {
-    document.getElementById("topic-label").innerText = "No code provided.";
-    return;
-  }
+if (!concepts) {
+  document.getElementById("topic-label").innerText = "No key concepts provided.";
+  return;
+}
 
-  fetch("/get_youtube_videos", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code })
-  })
+fetch("/get_youtube_videos", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ concepts })
+})
+
   .then(res => res.json())
   .then(data => {
     document.getElementById("topic-label").innerText = `Results for: ${data.query}`;
