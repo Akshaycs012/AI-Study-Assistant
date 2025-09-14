@@ -144,7 +144,6 @@ def generate_timetable():
     return redirect(url_for("index"))
 
 
-
 @app.route("/generate_study_timetable", methods=["POST"])
 def generate_study_timetable():
     import json
@@ -155,15 +154,20 @@ def generate_study_timetable():
     if not code.strip():
         return jsonify(success=False, error="No code provided"), 400
 
+    # ✅ new prompt with clear marker
     prompt = f"""
-You are a helpful study planner.
-Analyze this code and its key concepts, and produce ONLY valid JSON (no explanation text).
+You are a helpful code tutor and study planner.
 
-Each JSON item must have:
-  - "task": short task name
-  - "minutes": integer (duration)
+Analyze the given code and do the following:
 
-Example output:
+PART 1 — Formal Explanation:
+- Write a beginner-friendly explanation of the code (plain text, no stars, dots, bullets, markdown)
+- Use 2-4 sentences per section: Overview, Step-by-Step Explanation, Algorithm, Key Concepts, Output Behavior
+
+PART 2 — Study Plan JSON:
+- After the explanation, output this exact marker on a new line:
+  ---JSON---
+- Then output ONLY a valid JSON array like:
 [
   {{"task": "Understand loops", "minutes": 30}},
   {{"task": "Practice functions", "minutes": 40}}
@@ -172,8 +176,7 @@ Example output:
 Key concepts: {concepts}
 
 Code:
-
-Only return valid JSON array, no extra notes or explanations.
+```{code}```
 """
 
     try:
@@ -185,17 +188,16 @@ Only return valid JSON array, no extra notes or explanations.
 
         raw = (resp.choices[0].message.content or "").strip()
 
-        # Extract first valid JSON array
-        start = raw.find('[')
-        end = raw.rfind(']')
-        if start == -1 or end == -1:
-            raise ValueError(f"No JSON array found. Got: {raw[:100]}...")
-        json_text = raw[start:end+1]
+        # ✅ Split explanation vs JSON
+        if "---JSON---" not in raw:
+            raise ValueError("No JSON marker found in model output")
+        _, json_part = raw.split("---JSON---", 1)
 
-        # Validate JSON
+        # ✅ Clean + parse JSON
+        json_text = json_part.strip()
         items = json.loads(json_text)
         if not isinstance(items, list):
-            raise ValueError("Expected a JSON list of tasks")
+            raise ValueError("Expected a JSON list")
 
         TIMETABLES.append({
             "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -256,6 +258,77 @@ def explain():
         }
     })
 
+
+@app.route("/line_explain", methods=["POST"])
+def line_explain():
+    data = request.get_json(silent=True) or {}
+    user_input = (data.get("code") or "").strip()
+
+    if not user_input:
+        return jsonify({"error": "No input provided"}), 400
+
+    prompt = f"""
+You are a senior coding tutor.
+
+If the user input is code:
+- Start with a clear and short **overview** explaining what the code does overall.
+- Then give a **line-by-line explanation**.
+- Each line explanation should feel like a **topper friend is explaining**, in a warm and very understandable tone.
+- Each line or block gets its **own paragraph** (or more if needed).
+- ❌ Do NOT include or repeat the actual code here — assume it’s already shown above in the Explanation part.
+
+If it's NOT code:
+- Reply normally and conversationally.
+✅ Output rules:
+- Return pure HTML only
+- Wrap everything in:
+  <div class="bg-gray-900 p-6 rounded-xl shadow space-y-6 max-w-3xl mx-auto">
+
+- Use Tailwind classes like:
+  - text-emerald-300, text-indigo-300 for headings
+  - text-gray-300 for text
+  - p-4, rounded-xl, shadow for sections
+
+- For the **overview**:
+  <p class="text-gray-300 leading-relaxed bg-gray-800 p-4 rounded-lg shadow">
+
+- For the line-by-line section heading:
+  <h3 class="text-emerald-300 text-lg font-semibold">Line-by-Line Explanation</h3>
+
+- For each explanation line:
+  <div class="space-y-3">
+    <p class="text-gray-300 leading-relaxed p-4 rounded-lg shadow odd:bg-gray-800 even:bg-gray-700">
+      explanation here
+    </p>
+  </div>
+
+- Inline highlight for code keywords:
+  <span class="text-pink-400 font-mono">java.util.*</span>,
+  <span class="text-yellow-300 font-mono">Scanner</span>,
+  <span class="text-cyan-300 font-mono">dist</span>, etc.
+
+- ❌ Do NOT include full code here (assume shown above)
+- Only do: Overview + line-by-line logic
+Input:
+{user_input}
+"""
+
+    try:
+        resp = client.chat.completions.create(
+            model="gemma2-9b-it",  # ✅ same working model
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4
+        )
+
+        content = resp.choices[0].message.content.strip()
+        if not content:
+            return jsonify({"line_explanation": "<p class='text-red-400'>No explanation generated.</p>"}), 200
+
+        return jsonify({"line_explanation": content})
+
+    except Exception as e:
+        print("LINE_EXPLAIN ERROR:", e)  # ✅ show full error in console
+        return jsonify({"error": str(e)}), 500
 
 
 

@@ -1,50 +1,30 @@
 // ===========================
 // Explain Code Handler
 // ===========================
+// ===========================
+// Explain Code Handler
+// ===========================
 document.getElementById("btnExplain").addEventListener("click", async () => {
   const code = document.getElementById("code").value.trim();
   if (!code) return alert("Please enter some code!");
 
   try {
+    // 📌 1. Call main explain API
     const res = await fetch("/explain", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }) // ⬅️ language removed
+      body: JSON.stringify({ code })
     });
-
     const data = await res.json();
+
     if (data.error) {
       document.getElementById("explanation-output").innerText = data.error;
       return;
     }
 
+    const keyConcepts = (data.keywords || []).join(" ");
 
-
-        // 🎯 Now fetch YouTube videos based on key concepts
-const keyConcepts = (data.keywords || []).join(" ");
-
-fetch("/get_youtube_videos", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ concepts: keyConcepts })
-})
-  .then(res => res.json())
-  .then(ytData => {
-    const grid = document.getElementById("video-grid");
-    if (!grid) return; // grid exists only on youtube_results.html
-    grid.innerHTML = ytData.videos.map(v => `
-      <div class="card">
-        <a href="https://www.youtube.com/watch?v=${v.videoId}" target="_blank">
-          <img src="${v.thumbnail}" alt="${v.title}">
-          ${v.title}
-        </a>
-      </div>
-    `).join("");
-  })
-  .catch(err => console.error(err));
-
-
-    // 💬 Explanation Section
+    // 📌 2. Inject Explanation
     document.getElementById("explanation-output").innerHTML = `
       <div class="bg-[#1f1f3a] p-5 rounded-2xl shadow-md">
         <h2 class="text-2xl font-bold mb-3 text-[#a0e7e5] flex items-center gap-2">
@@ -59,7 +39,7 @@ fetch("/get_youtube_videos", {
       </div>
     `;
 
-    // 💡 Contextual Keywords
+    // 📌 3. Inject Key Concepts
     document.getElementById("contextual-output").innerHTML = `
       <div class="bg-[#1f1f3a] p-5 rounded-2xl shadow-md">
         <h2 class="text-2xl font-bold mb-3 text-yellow-300">📌 Key Concepts</h2>
@@ -71,65 +51,100 @@ fetch("/get_youtube_videos", {
       </div>
     `;
 
-
-
-    // 💻 Highlighted Code
+    // 📌 4. Inject Highlighted Code
     document.getElementById("explanation-output").insertAdjacentHTML("beforeend", `
-  <div class="mt-6">
-    <h3 class="text-lg font-semibold text-green-300 mb-2">💻 Highlighted Code:</h3>
-    <div class="rounded-xl overflow-hidden border border-gray-600 bg-[#2d2d2d] p-4">
-      ${data.highlighted}
-    </div>
-  </div>
-`);
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold text-green-300 mb-2">💻 Code:</h3>
+        <div class="rounded-xl overflow-hidden border border-gray-600 bg-[#2d2d2d] p-4">
+          ${data.highlighted}
+        </div>
+      </div>
+    `);
 
+    // 📌 5. Inject Resources
+    document.getElementById("resources-output").innerHTML = `
+      <div class="bg-[#1f1f3a] p-5 rounded-2xl shadow-md">
+        <h2 class="text-2xl font-bold mb-3 text-pink-300">📚 Resources</h2>
+        <div class="flex gap-4">
 
-    // 📚 Resources
-// ===========================
-// Inject Resources Section
-// ===========================
-document.getElementById("resources-output").innerHTML = `
-  <div class="bg-[#1f1f3a] p-5 rounded-2xl shadow-md">
-    <h2 class="text-2xl font-bold mb-3 text-pink-300">📚 Resources</h2>
-    <div class="flex gap-4">
+          <a href="${data.resources?.docs || '#'}" target="_blank"
+             class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-white font-semibold">
+             Official Docs
+          </a>
 
-      <!-- Official Docs -->
-      <a href="${data.resources?.docs || '#'}" 
-         target="_blank"
-         class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg text-white font-semibold">
-         Official Docs
-      </a>
+          <a href="/youtube_results?concepts=${encodeURIComponent(keyConcepts)}"
+             target="_blank"
+             class="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-white font-semibold">
+             YouTube Tutorials
+          </a>
 
-      <!-- YouTube Tutorials -->
-      <a href="/youtube_results?concepts=${encodeURIComponent(keyConcepts)}"
-         target="_blank"
-         class="bg-rose-600 hover:bg-rose-700 px-4 py-2 rounded-lg text-white font-semibold">
-         YouTube Tutorials
-      </a>
+          <button id="btnGenTimetable"
+             class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-white font-semibold">
+             📅 Generate Timetable
+          </button>
 
-      <!-- Generate Timetable -->
-      <button id="btnGenTimetable"
-         class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-white font-semibold">
-         📅 Generate Timetable
-      </button>
+        </div>
+      </div>
+    `;
 
-    </div>
-  </div>
-`;
-
-
-
-    // Optional: Add returned CSS
+    // 📌 6. Inject returned CSS if any
     if (data.css) {
       const styleTag = document.createElement("style");
       styleTag.innerHTML = data.css;
       document.head.appendChild(styleTag);
     }
 
+    // 📌 7. Fetch YouTube thumbnails in background
+    fetch("/get_youtube_videos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ concepts: keyConcepts })
+    })
+      .then(r => r.json())
+      .then(ytData => {
+        const grid = document.getElementById("video-grid");
+        if (!grid) return;
+        grid.innerHTML = ytData.videos.map(v => `
+          <div class="card">
+            <a href="https://www.youtube.com/watch?v=${v.videoId}" target="_blank">
+              <img src="${v.thumbnail}" alt="${v.title}">
+              ${v.title}
+            </a>
+          </div>
+        `).join("");
+      })
+      .catch(console.error);
+
+    // 📌 8. Deep Dive: line-by-line
+    const deepBox = document.getElementById("line-by-line-output");
+    const deepContent = document.getElementById("line-by-line-content");
+
+    deepContent.innerHTML = `<p class="text-gray-400">⏳ Generating detailed breakdown...</p>`;
+    deepBox.classList.remove("hidden");
+
+    fetch("/line_explain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.line_explanation) {
+          deepContent.innerHTML = d.line_explanation;
+        } else {
+          deepContent.innerHTML = `<p class="text-red-400">No deep explanation available.</p>`;
+        }
+      })
+      .catch(err => {
+        console.error("Deep dive error:", err);
+        deepContent.innerHTML = `<p class="text-red-400">Error fetching deep explanation.</p>`;
+      });
+
   } catch (err) {
     alert("Error fetching explanation: " + err.message);
   }
 });
+
 
 
 
@@ -436,3 +451,10 @@ async function deleteTask(tableIndex, taskIndex) {
 }
 
 
+function showDeepDive(content) {
+  const deepDive = document.getElementById('line-by-line-output');
+  const contentBox = document.getElementById('line-by-line-content');
+
+  contentBox.innerHTML = content;
+  deepDive.classList.remove('hidden');
+}

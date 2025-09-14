@@ -139,3 +139,32 @@ body {
   color: #c8c8f8;
 }
 
+/* Contain code blocks inside parent width */
+pre {
+  background-color: #1e1e1e;
+  color: #f8f8f2;
+  font-family: "Fira Code", monospace;
+  font-size: 0.95rem;
+  line-height: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #2d2d2d;
+
+  /* ✨ These fix the width issue */
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;      /* Wrap long lines instead of horizontal scroll */
+  word-break: break-word;     /* Break long words if needed */
+  box-sizing: border-box;
+}
+
+/* Optional for <code> inside <pre> */
+pre code {
+  display: block;
+  color: inherit;
+  background: transparent;
+  text-shadow: none;
+  white-space: inherit;  /* Inherit pre's wrapping */
+}
+
+
