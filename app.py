@@ -453,6 +453,38 @@ def generate_notes():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {e}"}), 500
 
+
+@app.route("/resources")
+def resources_page():
+    return render_template("resources.html")
+
+
+@app.route('/fetch-resources', methods=['POST'])
+def fetch_resources():
+    data = request.get_json()
+    topic = data.get("query")
+
+    if not topic:
+        return jsonify({"error": "Topic is required"}), 400
+
+    response = {
+        "resources": [
+            {
+                "type": "YouTube Video",
+                "title": f"Intro to {topic} Tutorial",
+                "link": f"https://www.youtube.com/results?search_query={topic}+tutorial"
+            },
+            {
+                "type": "Article",
+                "title": f"Official {topic} Documentation",
+                "link": "https://docs.python.org/"
+            }
+        ]
+    }
+    return jsonify(response)
+
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)

@@ -512,3 +512,73 @@ async function fetchResources() {
 }
 
 fetchResourcesBtn.addEventListener('click', fetchResources);
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const searchBtn = document.getElementById('searchBtn');
+  const queryInput = document.getElementById('resourceQuery');
+  const outputDiv = document.getElementById('resourcesOutput');
+
+  searchBtn.addEventListener('click', async () => {
+    const query = queryInput.value.trim();
+
+    if (!query) {
+      outputDiv.innerHTML = '<p class="text-red-500 text-center">Please enter a search query.</p>';
+      return;
+    }
+
+    outputDiv.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+    searchBtn.disabled = true;
+
+    try {
+      const response = await fetch('/fetch-resources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        outputDiv.innerHTML = `<p class="text-red-500 text-center">Error: ${data.error}</p>`;
+      } else if (data.resources && data.resources.length > 0) {
+        const ul = document.createElement('ul');
+        ul.classList.add('space-y-4');
+
+        data.resources.forEach(resource => {
+          const li = document.createElement('li');
+          const isYouTube = resource.type === 'YouTube Video';
+
+          li.innerHTML = `
+            <div class="resource-item p-4 border rounded-lg shadow-sm 
+                        ${isYouTube ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-gray-700' 
+                                    : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'}">
+              <div class="flex-1">
+                <span class="text-sm font-semibold 
+                            ${isYouTube ? 'text-red-600 dark:text-red-400' 
+                                        : 'text-indigo-600 dark:text-indigo-400'}">
+                  ${resource.type}:
+                </span>
+                <a href="${resource.link}" target="_blank" 
+                   class="block mt-1 font-medium text-lg hover:underline">
+                   ${resource.title}
+                </a>
+              </div>
+            </div>
+          `;
+          ul.appendChild(li);
+        });
+
+        outputDiv.innerHTML = '';
+        outputDiv.appendChild(ul);
+      } else {
+        outputDiv.innerHTML = '<p class="text-center text-gray-500">No resources found for that topic.</p>';
+      }
+    } catch (error) {
+      outputDiv.innerHTML = `<p class="text-red-500 text-center">Network error: ${error.message}</p>`;
+    } finally {
+      searchBtn.disabled = false;
+    }
+  });
+});

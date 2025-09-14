@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resources - AI Study Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .resource-item { display: flex; align-items: center; gap: 1rem; }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+
+  <header class="bg-indigo-600 dark:bg-indigo-800 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold">Resources</h1>
+      <nav>
+        <a href="/" class="text-white hover:underline mx-2">Home</a>
+        <a href="/dashboard" class="text-white hover:underline mx-2">Dashboard</a>
+        <a href="/notes" class="text-white hover:underline mx-2">Notes</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container mx-auto mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+    <h2 class="text-3xl font-bold text-center mb-6">Find Study Resources</h2>
+    
+    <div class="flex flex-col md:flex-row gap-4 mb-6">
+      <input type="text" id="resourceQuery"
+             placeholder="Search for a topic, e.g., 'Python', 'CSS Flexbox', 'Go routines'"
+             class="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
+      <button id="searchBtn"
+              class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-300">
+        Search
+      </button>
+    </div>
+
+    <div id="resourcesOutput" class="mt-6">
+      <p class="text-center text-gray-500" id="initialMessage">Enter a topic and click Search to find resources.</p>
+    </div>
+  </main>
+
+  <footer class="bg-gray-200 dark:bg-gray-900 text-gray-600 dark:text-gray-400 p-4 mt-8 text-center shadow-inner">
+    <p>&copy; 2025 AI Study Assistant. All rights reserved.</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchBtn = document.getElementById('searchBtn');
+      const queryInput = document.getElementById('resourceQuery');
+      const outputDiv = document.getElementById('resourcesOutput');
+
+      searchBtn.addEventListener('click', async () => {
+        const query = queryInput.value.trim();
+
+        if (!query) {
+          outputDiv.innerHTML = '<p class="text-red-500 text-center">Please enter a search query.</p>';
+          return;
+        }
+
+        outputDiv.innerHTML = '<p class="text-center text-gray-500">Searching...</p>';
+        searchBtn.disabled = true;
+
+        try {
+          const response = await fetch('/fetch-resources', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query })
+          });
+
+          const data = await response.json();
+
+          if (data.error) {
+            outputDiv.innerHTML = `<p class="text-red-500 text-center">Error: ${data.error}</p>`;
+          } else {
+            outputDiv.innerHTML = '';
+
+            if (data.resources && data.resources.length > 0) {
+              const ul = document.createElement('ul');
+              ul.classList.add('space-y-4');
+
+              data.resources.forEach(resource => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                  <div class="resource-item p-4 border rounded-lg shadow-sm 
+                              ${resource.type === 'YouTube Video' 
+                                ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-gray-700' 
+                                : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'}">
+                    <div class="flex-1">
+                      <span class="text-sm font-semibold ${resource.type === 'YouTube Video' 
+                                ? 'text-red-600 dark:text-red-400' 
+                                : 'text-indigo-600 dark:text-indigo-400'}">${resource.type}:</span>
+                      <a href="${resource.link}" target="_blank" class="block mt-1 font-medium text-lg hover:underline">${resource.title}</a>
+                    </div>
+                  </div>
+                `;
+                ul.appendChild(li);
+              });
+              outputDiv.appendChild(ul);
+            } else {
+              outputDiv.innerHTML = '<p class="text-center text-gray-500">No resources found for that topic.</p>';
+            }
+          }
+        } catch (error) {
+          outputDiv.innerHTML = `<p class="text-red-500 text-center">Network error: ${error.message}</p>`;
+        } finally {
+          searchBtn.disabled = false;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
