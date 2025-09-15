@@ -19,6 +19,14 @@ app = Flask(__name__)
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
+
+# check api key
+if not YOUTUBE_API_KEY:
+    app.logger.warning("YOUTUBE_API_KEY missing or empty — YouTube endpoints will fail.")
+else:
+    app.logger.info("YOUTUBE_API_KEY loaded (value hidden).")
+
+
 # In-memory storage
 TIMETABLES = []
 
@@ -334,42 +342,59 @@ Input:
 
 
 
-
 @app.route("/get_youtube_videos", methods=["POST"])
 def get_youtube_videos():
-    # Now we get 'concepts' instead of 'code'
-    concepts = request.json.get("concepts", "")
+    data = request.get_json(silent=True) or {}
+    concepts = (data.get("concepts") or "").strip()
 
-    # If nothing is provided, return error
-    if not concepts.strip():
+    if not concepts:
         return jsonify({"error": "No concepts provided"}), 400
 
-    # Clean search query
     search_query = concepts.replace("\n", " ").strip()
 
-    yt_response = requests.get(
-        "https://www.googleapis.com/youtube/v3/search",
-        params={
-            "part": "snippet",
-            "q": search_query,
-            "key": os.getenv("YOUTUBE_API_KEY"),
-            "maxResults": 6,
-            "type": "video"
-        }
-    )
+    params = {
+        "part": "snippet",
+        "q": search_query,
+        "key": YOUTUBE_API_KEY,
+        "maxResults": 6,
+        "type": "video"
+    }
 
-    videos = yt_response.json().get("items", [])
+    try:
+        yt_resp = requests.get("https://www.googleapis.com/youtube/v3/search", params=params, timeout=10)
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": "Network error", "details": str(e)}), 502
 
-    return jsonify({
-        "query": search_query,
-        "videos": [
-            {
-                "title": v["snippet"]["title"],
-                "thumbnail": v["snippet"]["thumbnails"]["medium"]["url"],
-                "videoId": v["id"]["videoId"]
-            } for v in videos
-        ]
-    })
+    # 🔥 check if YouTube rejected due to restriction/invalid key
+    if yt_resp.status_code != 200:
+        try:
+            error_json = yt_resp.json()
+        except ValueError:
+            error_json = {"raw": yt_resp.text}
+
+        # Look for common error reasons
+        reason = None
+        if "error" in error_json:
+            reason = error_json["error"].get("errors", [{}])[0].get("reason")
+
+        message = f"YouTube API error ({reason})" if reason else "YouTube API error"
+        return jsonify({"error": message, "details": error_json}), 502
+
+    payload = yt_resp.json()
+    items = payload.get("items", [])
+    videos = []
+    for v in items:
+        vid_id = v.get("id", {}).get("videoId")
+        snippet = v.get("snippet", {})
+        if not vid_id:
+            continue
+        thumbnail = snippet.get("thumbnails", {}).get("medium", {}).get("url", "")
+        title = snippet.get("title", "")
+        videos.append({"title": title, "thumbnail": thumbnail, "videoId": vid_id})
+
+    return jsonify({"query": search_query, "videos": videos})
+
+
 
 
 @app.route("/youtube_results")
