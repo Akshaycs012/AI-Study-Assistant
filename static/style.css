@@ -168,3 +168,13 @@ pre code {
 }
 
 
+#progress-bar {
+  background: linear-gradient(90deg, #34d399, #10b981, #34d399);
+  background-size: 200% 100%;
+  animation: gradientMove 2s linear infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 0%; }
+}

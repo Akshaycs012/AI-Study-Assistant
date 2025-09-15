@@ -361,9 +361,14 @@ function startBreak() {
 
 function runTimer() {
   clearInterval(timer);
+  const total = remaining;
+  const bar = document.getElementById("progress-bar");
+  let elapsed = 0;
+
   timer = setInterval(() => {
     if (remaining <= 0) {
       clearInterval(timer);
+      bar.style.width = "100%";
       if (onBreak) {
         currentIndex++;
         startTask();
@@ -372,18 +377,36 @@ function runTimer() {
       }
       return;
     }
+
     remaining--;
-    updateUI();
+    elapsed++;
+    const percent = ((total - remaining) / total) * 100;
+    bar.style.width = percent + "%";
   }, 1000);
 }
 
-function updateUI() {
-  const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
-  const secs = String(remaining % 60).padStart(2, '0');
-  document.getElementById("timer").textContent = `${mins}:${secs}`;
-  if (!onBreak)
-    document.getElementById("current-task").textContent = focusTasks[currentIndex].task;
+function startTask() {
+  if (currentIndex >= focusTasks.length) {
+    alert("🎉 All tasks completed!");
+    resetSession();
+    return;
+  }
+  const task = focusTasks[currentIndex];
+  remaining = parseInt(task.minutes) * 60 || 1500; // fallback 25 min
+  onBreak = false;
+  document.getElementById("current-task").textContent = task.task;
+  document.getElementById("progress-bar").style.width = "0%";
+  runTimer();
 }
+
+function startBreak() {
+  onBreak = true;
+  remaining = 10 * 60; // 10 min break
+  document.getElementById("current-task").textContent = "☕ Break Time!";
+  document.getElementById("progress-bar").style.width = "0%";
+  runTimer();
+}
+
 
 function resetSession() {
   clearInterval(timer);
